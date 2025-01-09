@@ -1,4 +1,5 @@
-**Jacob**
+Jacob
+-----------
 
 This is a "math tutor" which you can converse with in real time! 
 
