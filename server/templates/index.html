@@ -10,21 +10,26 @@
             display: flex;
             align-items: flex-start;
             height: 100vh;
+            background-color: #212529;
         }
 
         .left-panel {
             width: 40%;
+            height: 100%;
+            border-right: 10px solid #212529;
             padding: 20px;
-            background-color: #f8f9fa;
+            color: whitesmoke;
+            background-color: #495057;
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
         }
 
         .right-panel {
             width: 60%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #e9ecef;
+            background-color: black;
         }
 
         video {
@@ -33,6 +38,13 @@
             border: 1px solid #ddd;
             border-radius: 5px;
         }
+
+        .input{
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 30px;
+        }
+
+
     </style>
 </head>
 <body>
@@ -46,12 +58,13 @@
 
         <!-- Right Panel -->
         <div class="right-panel">
-            <video controls>
-                <source src="{{ url_for('get_video', filename=filename) }}" type="video/mp4">
+
+            <video controls id="video-player">
+                <source id="video-source" src="" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
-
         </div>
+
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>

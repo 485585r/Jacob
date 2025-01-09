@@ -16,12 +16,13 @@ from langgraph.graph import START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import AnyMessage, add_messages
 from langgraph.prebuilt import tools_condition
-
-os.environ['TAVILY_API_KEY'] = "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"
-os.environ['OPENAI_API_KEY'] = "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"
-
 from tools import TOOLS
+from environ import secrets
+#Define your own environment secrets
 
+
+
+secrets()
 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
@@ -75,18 +76,26 @@ workflow.add_edge("tools", "agent")
 agent = workflow.compile()
 printed_messages = set()
 
+video_url = None
+
+
 
 def create_app():
     app = Flask(__name__)
 
     # Base directory for video files
-    VIDEO_FOLDER = r"C:/JacobTest"
+    cd = os.getcwd()
+
+    VIDEO_FOLDER = cd + "\\media\\videos"
+
 
     @app.route('/get_video', methods=['POST'])
     def get_video():
+        global video_url
         # Get the filename from the POST request
         filename = request.json.get('filename')
-        print(filename)
+        print(f"Requested filename: {filename}")
+
         if not filename:
             return jsonify({"error": "Filename is required"}), 400
 
@@ -97,8 +106,30 @@ def create_app():
         if not os.path.exists(file_path):
             abort(404, description="File not found")
 
-        # Serve the video file
-        return send_from_directory(VIDEO_FOLDER, filename)
+        # Return a URL that points to a Flask route for serving the video
+        video_url = f"http://127.0.0.1:5000/serve_video/{filename}"
+        return jsonify({"video_url": video_url})
+
+    @app.route('/serve_video/<path:filename>', methods=['GET'])
+    def serve_video(filename):
+        # Serve the video file dynamically
+        file_path = os.path.join(VIDEO_FOLDER, filename)
+
+        if not os.path.exists(file_path):
+            abort(404, description="File not found")
+
+        return send_from_directory(VIDEO_FOLDER, filename, mimetype="video/mp4")
+
+    @app.route('/get-text', methods=['GET'])
+    def get_text():
+        global video_url
+
+        if video_url is None:
+            video_url = "None"
+        # This is where you can set the text dynamically
+        text_to_return = video_url
+        print(text_to_return)
+        return jsonify({'text': text_to_return})
 
 
     @app.route("/")

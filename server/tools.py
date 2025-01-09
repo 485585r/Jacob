@@ -1,17 +1,13 @@
 from langchain_core.tools import tool
-
+from moviepy import VideoFileClip, AudioFileClip, CompositeVideoClip
 from langchain_community.tools import TavilySearchResults
 from pydantic import BaseModel, Field
 import os
 import requests
-
 import pyttsx3
 import time
-
 import subprocess
 
-
-from moviepy import VideoFileClip, AudioFileClip, CompositeVideoClip
 
 def add_audio_to_video(video_path, audio_path, output_path):
     """
@@ -56,17 +52,6 @@ def add_audio_to_video(video_path, audio_path, output_path):
         raise
 
 
-class AddInt(BaseModel):
-    a: int = Field(description="The first integer to add")
-    b: int = Field(description="The second integer to add")
-
-
-@tool("add", args_schema=AddInt)
-def add(a: int, b: int):
-    """Add two numbers. Please let the user know that you're adding the numbers BEFORE you call the tool"""
-    return a + b
-
-
 
 class writeScript(BaseModel):
     file_name: str = Field(description="The filename of the manim script you just made. It should be XXX.py")
@@ -77,7 +62,8 @@ def write_script(file_name: str, script: str):
     """Write and save the python script for generating the manim animation. The script must be in proper python syntax for it to work"""
     print("HERE + WE WRITING")
     cd = os.getcwd()
-    file_name = cd + f"\\{file_name}"
+    file_name = cd + f"\\generated_video_code\\{file_name}"
+
 
     print(file_name)
 
@@ -86,6 +72,9 @@ def write_script(file_name: str, script: str):
         file.write(script)
 
     return f"File saved as filename {file_name}"
+
+
+
 class makeTTSExplanation(BaseModel):
     script: str = Field(description="The explanation script you will use as a voiceover for the video you just made")
     output_file: str = Field(description="the file name for the .mp3 tts file. For the name, just do [thing your explaining].mp3. dont put the []")
@@ -93,6 +82,8 @@ class makeTTSExplanation(BaseModel):
 @tool("make_tts_explanation", args_schema=makeTTSExplanation)
 def make_tts_explanation(script: str, output_file: str):
     """Create the text to speech explanation file for your manim video. Only input your explanation script in text and the output file"""
+
+
     engine = pyttsx3.init()
     
     # Optional: Modify voice properties
@@ -100,10 +91,12 @@ def make_tts_explanation(script: str, output_file: str):
     # engine.setProperty('volume', 0.9)  # Volume (0.0 to 1.0)
     
     # Save to file
-    engine.save_to_file(script, output_file)
+
+    audio_path = f"generated_audio\\{output_file}"
+    engine.save_to_file(script, audio_path)
     engine.runAndWait()
 
-    return f"audio file saved as {output_file}"
+    return f"audio file saved as {audio_path}"
 
 class runScript(BaseModel):
     file_name: str = Field(description="The filename of the manim script you just made. It MUST be the same as the one used in WriteScript")
@@ -116,11 +109,11 @@ def run_script(file_name: str, script_class: str, audio_file: str):
     """run the manim script you just made. To use this tool, input the file name the write_script tool just made and nothing else. You also need to input the main class that runs the whole scene"""
     print(f"We are running {file_name} with class {script_class}")
 
-
-
+    file_path = f"generated_video_code\\{file_name}"
+    audio_path = f"generated_audio\\{audio_file}"
 
     command = [
-    "manim", "-qh", f"{file_name}", f"{script_class}"
+        "manim", "-pqh", f"{file_path}", f"{script_class}"
     ]
 
     try:
@@ -131,25 +124,24 @@ def run_script(file_name: str, script_class: str, audio_file: str):
         base_name = os.path.splitext(file_name)[0]
         data_to_post = base_name + f"/1080p60/" + script_class + ".mp4"
 
+        cd = os.getcwd()
 
-        videos_dir = "C:\\JacobTest\\server\\media\\videos"
+        videos_dir = cd + "\\media\\videos"
 
         video = os.path.join(videos_dir, data_to_post)
 
         save = os.path.join(videos_dir, data_to_post.replace(".mp4", "tts_exp.mp4"))
 
-        
-
         time.sleep(10)
 
         add_audio_to_video(
             video_path=video,
-            audio_path=audio_file,
+            audio_path=audio_path,
             output_path=save
         )
 
-        # Post the data to the frontend or another API
-        post_url = "/render_page"  # Replace with your actual endpoint
+        data_to_post = base_name + f"/1080p60/" + script_class + "tts_exp" + ".mp4"
+
 
         data = {"filename": data_to_post}
         response = requests.post(url = "http://127.0.0.1:5000/get_video", json=data)
@@ -158,15 +150,14 @@ def run_script(file_name: str, script_class: str, audio_file: str):
             print("Video served successfully")
         else:
             print(f"Error: {response.status_code}")
+            return f"Error: {response.status_code}"
 
     except Exception as e:
         print(str(e))
         return {"status": "error", "message": str(e)}
+
     
-class AddAudioToVideo(BaseModel):
-    audio_path: str = Field("The path to the audio file you created with the create_tts_explanation tool")
-    video_path: str = Field("The path to the video you created with the ")
 
 TAVILY_TOOL = TavilySearchResults(max_results=10, tavily_api_key=os.environ['TAVILY_API_KEY'])
 
-TOOLS = [TAVILY_TOOL, add, write_script, run_script, make_tts_explanation]
+TOOLS = [TAVILY_TOOL,write_script, run_script, make_tts_explanation]
