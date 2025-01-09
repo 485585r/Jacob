@@ -12,9 +12,10 @@ Steps to execute:
 Execute with
 -----------------
 *flask run*
------------
+
 
 Design information:
+----------------
 
 We leverage GPT4.o alongside the Manim Library and LangGraph to create an agent capable of generating informational mathematical videos. An example is provided in the videos folder.
 
